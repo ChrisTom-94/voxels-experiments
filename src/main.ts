@@ -5,17 +5,25 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 (() => {
 
   // constants
-  const MAX_VOXELS = 1000
-  const matrixShadow = new THREE.Matrix4().makeTranslation(0.5, 0.5, 0.5)
   const COLORS = [
-    // 0xDF1F1F, 0xDFAF1F, 0x80DF1F, 0x1FDF50, 0x1FDFDF, 0x1F4FDF, 0x7F1FDF, 0xDF1FAF, 0xEFEFEF, 0x303030
-    0x00FF00, 0xDFAF1F, 
+    0xDF1F1F, 
+    0xDFAF1F, 
+    0x80DF1F, 
+    0x1FDF50, 
+    0x1FDFDF, 
+    0x1F4FDF, 
+    0x7F1FDF, 
+    0xDF1FAF, 
+    0xEFEFEF, 
+    0x303030 
   ];
-  const color = new THREE.Color()
   const grid_size = 20
+
 
   // variables
   let intersectedObjects: THREE.Intersection<THREE.Object3D<THREE.Event>>[] = []
+  let to_intersect: THREE.Object3D[] = []
+
 
   // scene
   const scene = new THREE.Scene()
@@ -23,12 +31,14 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
   const gridHelper = new THREE.GridHelper(grid_size, grid_size)
   scene.add(gridHelper)
   
+
   // renderer
   const renderer = new THREE.WebGLRenderer({antialias: true})
   renderer.setSize(window.innerWidth, window.innerHeight)
   renderer.setPixelRatio(window.devicePixelRatio)
   document.body.appendChild(renderer.domElement)
   
+
   // camera
   const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100)
   const controls = new OrbitControls(camera, renderer.domElement)
@@ -36,9 +46,11 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
   controls.maxPolarAngle = Math.PI / 2
   camera.position.set(0, 10, 15)
 
+
   // lights
   const ambientLight = new THREE.AmbientLight(0x404040);
 
+  
   // plane
   const planeGeometry = new THREE.PlaneGeometry(grid_size, grid_size)
   const planeMaterial = new THREE.MeshBasicMaterial({color: 0x000000, visible: false, side: THREE.DoubleSide})
@@ -51,29 +63,24 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
   const cubeGeometry = new THREE.BoxGeometry(1, 1, 1)
   const cubeMaterial = new THREE.MeshBasicMaterial()
 
-  const shadowVoxelMaterial = new THREE.MeshBasicMaterial({color: 0x000000, transparent: true, side: THREE.DoubleSide})
-  const shadowVoxel = new THREE.Mesh(cubeGeometry, shadowVoxelMaterial)
+  const shadowVoxel = new THREE.Mesh(cubeGeometry, cubeMaterial)
   shadowVoxel.material.opacity = 0.5
-  const voxels = new THREE.InstancedMesh(cubeGeometry, cubeMaterial, MAX_VOXELS)
-  
-  for(let i = 0; i < MAX_VOXELS; i++) {
-    voxels.setMatrixAt(i, matrixShadow)
-    voxels.setColorAt(i, color)
-  }
-  voxels.setColorAt(0, color.setHex(0xff0000))
-  
-  voxels.instanceMatrix!.needsUpdate = true
-  voxels.instanceColor!.needsUpdate = true
-  voxels.instanceMatrix!.setUsage(THREE.DynamicDrawUsage)
-  voxels.instanceColor!.setUsage(THREE.DynamicDrawUsage)
-  voxels.count = 1
-  
+
+  const voxel =  new THREE.Mesh(cubeGeometry, cubeMaterial)
+  voxel.position.set(0.5, 0.5, 0.5)
+  voxel.material.color.setHex(COLORS[Math.floor(Math.random() * COLORS.length)])
+  voxel.userData.isVoxel = true
+
 
   // raycaster
   const raycaster = new THREE.Raycaster()
   const mouse = new THREE.Vector2()
 
-  scene.add(plane, voxels, shadowVoxel, ambientLight)
+
+  // add to scene
+  scene.add(plane, voxel, shadowVoxel, ambientLight)
+  to_intersect = scene.children.filter((child) => child.userData.isVoxel).concat(plane)
+
 
   // events
   const onWindowResize = () => {
@@ -88,17 +95,16 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
   }
 
   const onClick = () => {
-
     if(intersectedObjects.length <= 0) return
 
-    const {x, y, z} = shadowVoxel.position
-    matrixShadow.identity().makeTranslation(x, y, z)
+    const material = new THREE.MeshBasicMaterial()
+    const newVoxel = new THREE.Mesh(cubeGeometry, material)
+    newVoxel.position.copy(shadowVoxel.position)
+    newVoxel.material.color.setHex(COLORS[Math.floor(Math.random() * COLORS.length)])
+    newVoxel.userData.isVoxel = true
 
-    voxels.count += 1
-    voxels.setMatrixAt(voxels.count - 1, matrixShadow)
-    voxels.setColorAt(voxels.count - 1, color.setHex(COLORS[Math.floor(Math.random() * COLORS.length)]))
-    voxels.instanceMatrix!.needsUpdate = true
-    voxels.instanceColor!.needsUpdate = true
+    to_intersect.push(newVoxel)
+    scene.add(newVoxel)
   }
 
   window.addEventListener('resize', onWindowResize, false)
@@ -114,21 +120,21 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
     raycaster.setFromCamera(mouse, camera)
 
     intersectedObjects.length = 0
-    raycaster.intersectObjects([plane, voxels], true, intersectedObjects)
+    raycaster.intersectObjects(to_intersect, true, intersectedObjects)
 
     if (intersectedObjects.length <= 0) {
       shadowVoxel.visible = false
       return
     }
 
-    if(intersectedObjects[0].object.name !== 'plane') {
-      console.log(intersectedObjects)
+    if(intersectedObjects[0].object === shadowVoxel) {
+        return
     }
-    
+
     shadowVoxel.visible = true
 
     const intersect = intersectedObjects[0]
-    const { point, face} = intersect
+    const {point, face} = intersect
 
     const position = new THREE.Vector3().copy(point).addScaledVector(face!.normal, 0.5)
     position.floor().addScalar(0.5)
