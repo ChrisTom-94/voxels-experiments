@@ -4,10 +4,6 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 
 (() => {
 
-  const pos = new THREE.Vector3()
-  const quat = new THREE.Quaternion()
-  const scale = new THREE.Vector3()
-
   // constants
   const MAX_VOXELS = 1000
   const matrixShadow = new THREE.Matrix4().makeTranslation(0.5, 0.5, 0.5)
@@ -16,13 +12,15 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
     0x00FF00, 0xDFAF1F, 
   ];
   const color = new THREE.Color()
+  const grid_size = 20
+
+  // variables
+  let intersectedObjects: THREE.Intersection<THREE.Object3D<THREE.Event>>[] = []
 
   // scene
   const scene = new THREE.Scene()
   scene.background = new THREE.Color(0xFFFFFF)
-  const axisHelper = new THREE.AxesHelper(5)
-  scene.add(axisHelper)
-  const gridHelper = new THREE.GridHelper(20, 20)
+  const gridHelper = new THREE.GridHelper(grid_size, grid_size)
   scene.add(gridHelper)
   
   // renderer
@@ -42,7 +40,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
   const ambientLight = new THREE.AmbientLight(0x404040);
 
   // plane
-  const planeGeometry = new THREE.PlaneGeometry(20, 20)
+  const planeGeometry = new THREE.PlaneGeometry(grid_size, grid_size)
   const planeMaterial = new THREE.MeshBasicMaterial({color: 0x000000, visible: false, side: THREE.DoubleSide})
   const plane = new THREE.Mesh(planeGeometry, planeMaterial)
   plane.name = 'plane'
@@ -91,6 +89,8 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 
   const onClick = () => {
 
+    if(intersectedObjects.length <= 0) return
+
     const {x, y, z} = shadowVoxel.position
     matrixShadow.identity().makeTranslation(x, y, z)
 
@@ -113,24 +113,31 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 
     raycaster.setFromCamera(mouse, camera)
 
-    const intersects = raycaster.intersectObjects([plane, voxels])
+    intersectedObjects.length = 0
+    raycaster.intersectObjects([plane, voxels], true, intersectedObjects)
 
-    if (intersects.length <= 0) {
+    if (intersectedObjects.length <= 0) {
       shadowVoxel.visible = false
       return
     }
 
+    if(intersectedObjects[0].object.name !== 'plane') {
+      console.log(intersectedObjects)
+    }
+    
     shadowVoxel.visible = true
 
-    const intersect = intersects[0]
-    const { point, face, object} = intersect
+    const intersect = intersectedObjects[0]
+    const { point, face} = intersect
 
-    // object.matrixWorld.makeTranslation(face!.normal.x, face!.normal.y, face!.normal.z)
-    const position = new THREE.Vector3().add(point);
-    const x = Math.floor(position.x) + 0.5
-    const y = Math.floor(position.y) + 0.5 > 0.5 ? Math.floor(position.y) + 0.5 : 0.5
-    const z = Math.floor(position.z) + 0.5
-    shadowVoxel.position.set(x, y, z)
+    const position = new THREE.Vector3().copy(point).addScaledVector(face!.normal, 0.5)
+    position.floor().addScalar(0.5)
+
+    position.x = Math.max((-grid_size / 2) + 0.5, Math.min((grid_size / 2) - 0.5, position.x))
+    position.z = Math.max((-grid_size / 2) + 0.5, Math.min((grid_size / 2) - 0.5, position.z))
+    position.y = Math.max(position.y, 0.5)
+
+    shadowVoxel.position.copy(position)
   }
 
   animate()
