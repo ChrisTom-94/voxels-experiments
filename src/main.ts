@@ -23,6 +23,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
   // variables
   let intersectedObjects: THREE.Intersection<THREE.Object3D<THREE.Event>>[] = []
   let to_intersect: THREE.Object3D[] = []
+  let current_color = 0
 
 
   // scene
@@ -61,11 +62,12 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 
   // voxels
   const cubeGeometry = new THREE.BoxGeometry(1, 1, 1)
-  const cubeMaterial = new THREE.MeshBasicMaterial()
-
-  const shadowVoxel = new THREE.Mesh(cubeGeometry, cubeMaterial)
+  
+  const shadowMaterial = new THREE.MeshBasicMaterial({color: COLORS[current_color], transparent: true, opacity: 0.5})
+  const shadowVoxel = new THREE.Mesh(cubeGeometry, shadowMaterial)
   shadowVoxel.material.opacity = 0.5
-
+  
+  const cubeMaterial = new THREE.MeshBasicMaterial()
   const voxel =  new THREE.Mesh(cubeGeometry, cubeMaterial)
   voxel.position.set(0.5, 0.5, 0.5)
   voxel.material.color.setHex(COLORS[Math.floor(Math.random() * COLORS.length)])
@@ -84,35 +86,69 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 
   // events
   const onWindowResize = () => {
+
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize( window.innerWidth, window.innerHeight );
+
   }
 
   const onMouseMove = (e: MouseEvent) => {
+
     mouse.x = (e.clientX / window.innerWidth) * 2 - 1
     mouse.y = -(e.clientY / window.innerHeight) * 2 + 1    
+
   }
 
-  const onClick = () => {
-    if(intersectedObjects.length <= 0) return
+  const onClick = (e: MouseEvent) => {
+    
+    if (e.button === 0) {
 
-    const material = new THREE.MeshBasicMaterial()
-    const newVoxel = new THREE.Mesh(cubeGeometry, material)
-    newVoxel.position.copy(shadowVoxel.position)
-    newVoxel.material.color.setHex(COLORS[Math.floor(Math.random() * COLORS.length)])
-    newVoxel.userData.isVoxel = true
+      if (intersectedObjects.length <= 0) return
 
-    to_intersect.push(newVoxel)
-    scene.add(newVoxel)
+      const material = new THREE.MeshBasicMaterial()
+      const newVoxel = new THREE.Mesh(cubeGeometry, material)
+
+      newVoxel.position.copy(shadowVoxel.position)
+      newVoxel.material.color.setHex(COLORS[current_color])
+      newVoxel.userData.isVoxel = true
+  
+      to_intersect.push(newVoxel)
+      scene.add(newVoxel)
+
+    } else if (e.button === 2) {
+
+      const intersect = intersectedObjects[0]
+      if (!intersect || !intersect.object.userData.isVoxel) return
+      
+      to_intersect.splice(to_intersect.indexOf(intersect.object), 1)
+      scene.remove(intersect.object)
+
+    }
+
+  }
+
+  const onKeyDown = (e: KeyboardEvent) => {
+
+    if(e.key === 'ArrowLeft') current_color = (current_color - 1 + COLORS.length) % COLORS.length
+    if(e.key === 'ArrowRight') current_color = (current_color + 1) % COLORS.length
+
+    shadowVoxel.material.color.setHex(COLORS[current_color])
+
   }
 
   window.addEventListener('resize', onWindowResize, false)
   window.addEventListener('mousemove', onMouseMove, false)
-  window.addEventListener('click', onClick, false)
+  window.addEventListener('mousedown', onClick, false)
+  window.addEventListener('keydown', onKeyDown, false)
 
   // render
   const animate = () => {
+
+    if(!document.hasFocus()){
+      shadowVoxel.visible = false
+    }
+
     requestAnimationFrame(animate)
     controls.update()
     renderer.render(scene, camera)
@@ -144,6 +180,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
     position.y = Math.max(position.y, 0.5)
 
     shadowVoxel.position.copy(position)
+
   }
 
   animate()
