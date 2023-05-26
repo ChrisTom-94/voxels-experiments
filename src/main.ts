@@ -5,6 +5,11 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 (() => {
 
   // constants
+
+  const clear_btn = document.getElementById('clear') as HTMLButtonElement
+  const save_btn = document.getElementById('save') as HTMLButtonElement
+  const load_input = document.getElementById('load') as HTMLInputElement
+
   const COLORS = [
     0xDF1F1F, 
     0xDFAF1F, 
@@ -51,6 +56,15 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
   // lights
   const ambientLight = new THREE.AmbientLight(0x404040);
 
+  const directionalLight_1 = new THREE.DirectionalLight(0xffffff, 0.5);
+  directionalLight_1.position.set(5, 5, -5);
+
+  const directionalLight_2 = new THREE.DirectionalLight(0xffffff, 0.5);
+  directionalLight_2.position.set(-5, 5, 5);
+
+  const lights = new THREE.Group()
+  lights.add(ambientLight, directionalLight_1, directionalLight_2)
+
   
   // plane
   const planeGeometry = new THREE.PlaneGeometry(grid_size, grid_size)
@@ -67,7 +81,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
   const shadowVoxel = new THREE.Mesh(cubeGeometry, shadowMaterial)
   shadowVoxel.material.opacity = 0.5
   
-  const cubeMaterial = new THREE.MeshBasicMaterial()
+  const cubeMaterial = new THREE.MeshPhongMaterial()
   const voxel =  new THREE.Mesh(cubeGeometry, cubeMaterial)
   voxel.position.set(0.5, 0.5, 0.5)
   voxel.material.color.setHex(COLORS[Math.floor(Math.random() * COLORS.length)])
@@ -80,7 +94,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 
 
   // add to scene
-  scene.add(plane, voxel, shadowVoxel, ambientLight)
+  scene.add(plane, voxel, shadowVoxel, lights)
   to_intersect = scene.children.filter((child) => child.userData.isVoxel).concat(plane)
 
 
@@ -106,7 +120,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 
       if (intersectedObjects.length <= 0) return
 
-      const material = new THREE.MeshBasicMaterial()
+      const material = new THREE.MeshPhongMaterial()
       const newVoxel = new THREE.Mesh(cubeGeometry, material)
 
       newVoxel.position.copy(shadowVoxel.position)
@@ -141,6 +155,76 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
   window.addEventListener('mousemove', onMouseMove, false)
   window.addEventListener('mousedown', onClick, false)
   window.addEventListener('keydown', onKeyDown, false)
+
+
+  const clear = () => {
+      
+      scene.children.filter((child) => child.userData.isVoxel).forEach((child) => scene.remove(child))
+  
+  }
+
+  const save = () => {
+      
+      const data = scene.children.filter((child) => child.userData.isVoxel).map((child) => {
+  
+        const mesh = child as THREE.Mesh
+        const material = mesh.material as THREE.MeshPhongMaterial
+
+        const {x, y, z} = mesh.position
+        const color = material.color!.getHex()
+  
+        return {
+          position: {x, y, z},
+          color
+        }
+  
+      })
+  
+      const blob = new Blob([JSON.stringify(data)], {type: 'application/json'})
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = 'voxels.json'
+      link.click()
+  
+  }
+
+  const load = (e: Event) => {
+
+    const input = e.target as HTMLInputElement
+    const file = input.files![0]
+    const reader = new FileReader()
+
+    if (!file) return
+
+    reader.onload = (e: ProgressEvent<FileReader>) => {
+
+      const data = JSON.parse(e.target!.result as string)
+      clear()
+
+      data.forEach((voxel: any) => {
+
+        const material = new THREE.MeshPhongMaterial()
+        const newVoxel = new THREE.Mesh(cubeGeometry, material)
+
+        newVoxel.position.copy(voxel.position)
+        newVoxel.material.color.setHex(voxel.color)
+        newVoxel.userData.isVoxel = true
+    
+        to_intersect.push(newVoxel)
+        scene.add(newVoxel)
+
+      })
+
+    }
+
+    reader.readAsText(file)
+
+  }
+
+  clear_btn.addEventListener('click', clear)
+  save_btn.addEventListener('click', save)
+  load_input.addEventListener('change', load)
 
   // render
   const animate = () => {
