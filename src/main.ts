@@ -55,7 +55,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
   const controls = new OrbitControls(camera, renderer.domElement)
   controls.enablePan = false
   controls.maxPolarAngle = Math.PI / 2
-  camera.position.set(0, 10, 15)
+  camera.position.set(0, 20, 25)
 
 
   // lights
@@ -95,7 +95,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 
       // clear scene
       to_intersect.forEach((child) => scene.remove(child))
-      to_intersect = []
+      to_intersect = [plane]
 
       // add voxels
       json.forEach((voxel: any) => {
@@ -110,7 +110,6 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
     }
 
   }
-
 
   loadExample('chicken')
 
@@ -290,6 +289,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 
     if (intersectedObjects.length <= 0) {
       shadowVoxel.visible = false
+      // document.body.style.cursor = 'default'
       return
     }
 
@@ -298,6 +298,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
     }
 
     shadowVoxel.visible = true
+    // document.body.style.cursor = 'crosshair'
 
     const intersect = intersectedObjects[0]
     const {point, face} = intersect
