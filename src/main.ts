@@ -9,6 +9,9 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
   const clear_btn = document.getElementById('clear') as HTMLButtonElement
   const save_btn = document.getElementById('save') as HTMLButtonElement
   const load_input = document.getElementById('load') as HTMLInputElement
+  const examples_select = document.getElementById('examples') as HTMLSelectElement
+
+  const EXAMPLES = ["chicken"]
 
   const COLORS = [
     0xDF1F1F, 
@@ -20,7 +23,8 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
     0x7F1FDF, 
     0xDF1FAF, 
     0xEFEFEF, 
-    0x303030 
+    0x303030,
+    0xFFA500,
   ];
   const grid_size = 20
 
@@ -29,6 +33,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
   let intersectedObjects: THREE.Intersection<THREE.Object3D<THREE.Event>>[] = []
   let to_intersect: THREE.Object3D[] = []
   let current_color = 0
+  let last_example = 'chicken'
 
 
   // scene
@@ -80,12 +85,34 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
   const shadowMaterial = new THREE.MeshBasicMaterial({color: COLORS[current_color], transparent: true, opacity: 0.5})
   const shadowVoxel = new THREE.Mesh(cubeGeometry, shadowMaterial)
   shadowVoxel.material.opacity = 0.5
-  
-  const cubeMaterial = new THREE.MeshPhongMaterial()
-  const voxel =  new THREE.Mesh(cubeGeometry, cubeMaterial)
-  voxel.position.set(0.5, 0.5, 0.5)
-  voxel.material.color.setHex(COLORS[Math.floor(Math.random() * COLORS.length)])
-  voxel.userData.isVoxel = true
+
+  const loadExample = async (name: string) => {
+
+    if (EXAMPLES.includes(name)){
+      // load from json
+      const data = await fetch(`examples/${name}.json`)
+      const json = await data.json()
+
+      // clear scene
+      to_intersect.forEach((child) => scene.remove(child))
+      to_intersect = []
+
+      // add voxels
+      json.forEach((voxel: any) => {
+        const material = new THREE.MeshPhongMaterial()
+        const newVoxel = new THREE.Mesh(cubeGeometry, material)
+        newVoxel.position.copy(voxel.position)
+        newVoxel.material.color.setHex(voxel.color)
+        newVoxel.userData.isVoxel = true
+        to_intersect.push(newVoxel)
+        scene.add(newVoxel)
+      })
+    }
+
+  }
+
+
+  loadExample('chicken')
 
 
   // raycaster
@@ -94,7 +121,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 
 
   // add to scene
-  scene.add(plane, voxel, shadowVoxel, lights)
+  scene.add(plane, shadowVoxel, lights)
   to_intersect = scene.children.filter((child) => child.userData.isVoxel).concat(plane)
 
 
@@ -160,6 +187,8 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
   const clear = () => {
       
       scene.children.filter((child) => child.userData.isVoxel).forEach((child) => scene.remove(child))
+      to_intersect = [plane]
+      last_example = ""
   
   }
 
@@ -220,11 +249,28 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 
     reader.readAsText(file)
 
+    // reset input
+    input.value = ''
+
+  }
+
+  const onSelect = (e: Event) => {
+    
+    const input = e.target as HTMLInputElement
+    const name = input.value
+
+    if (!EXAMPLES.includes(name)) return
+
+    if (last_example === name) return
+
+    loadExample(name)
+
   }
 
   clear_btn.addEventListener('click', clear)
   save_btn.addEventListener('click', save)
   load_input.addEventListener('change', load)
+  examples_select.addEventListener('change', onSelect)
 
   // render
   const animate = () => {

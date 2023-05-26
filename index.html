@@ -3,36 +3,44 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite + TS</title>
+    <link rel="shortcut icon" href="voxel.png" type="image/png">
+    <title>Voxels</title>
   </head>
   <body>
     <div id="app"></div>
+
     <section id="ui">
       <div class="ui-color">
         <h2>Switch color</h2>
-        <p>Arrow left - Arrow right</p>
+        <img class="img-big" src="assets/keys.png" alt="">
       </div>
       <div>
         <h2>Add voxel</h2>
-        <p>Left click</p>
+        <img class="img-medium" src="assets/left-click.png" alt="">
       </div>
       <div>
         <h2>Remove voxel</h2>
-        <p>Right click</p>
+        <img class="img-medium" src="assets/right-click.png" alt="">
       </div>
       <div>
         <h2>Move camera</h2>
-        <p>Hold left click + mouse move</p>
+        <img src="assets/hold-left-move.png" alt="">
       </div>
-      <div>
+    </section>
+
+    <section id="actions">
         <button id="save">Save</button>
         <div class="ui-file-loader">
           <label for="load">Load</label>
           <input type="file" name="load" id="load">
         </div>
         <button id="clear">Clear</button>
-      </div>
+        <select id="examples">
+          <option value="">--</option>
+          <option value="chicken">Chicken</option>
+        </select>
     </section>
+
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
