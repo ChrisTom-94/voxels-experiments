@@ -13,6 +13,13 @@ body{
   height: 100vh;
 }
 
+#selection {
+  position: absolute;
+  z-index: 3;
+  border: 1px solid black;
+  pointer-events: none;
+}
+
 #ui{
   position: absolute;
   z-index: 1;
