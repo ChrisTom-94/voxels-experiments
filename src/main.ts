@@ -5,7 +5,10 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 (() => {
 
   // constants
-
+  const ui = document.getElementById('ui') as HTMLDivElement
+  const ui_toggler = document.getElementById('ui-toggler') as HTMLButtonElement
+  const colors_container = document.getElementById('ui-colors-container') as HTMLDivElement
+  const colors: HTMLDivElement[] = []
   const clear_btn = document.getElementById('clear') as HTMLButtonElement
   const save_btn = document.getElementById('save') as HTMLButtonElement
   const load_input = document.getElementById('load') as HTMLInputElement
@@ -86,6 +89,50 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
   const shadowVoxel = new THREE.Mesh(cubeGeometry, shadowMaterial)
   shadowVoxel.material.opacity = 0.5
 
+  const toggleUI = () => {
+    if('open' in ui.dataset){
+      ui.removeAttribute('data-open')
+      ui_toggler.removeAttribute('data-open')
+    }else{
+      ui.setAttribute('data-open', '')
+      ui_toggler.setAttribute('data-open', '')
+    }
+  }
+
+  ui_toggler.addEventListener('pointerdown', toggleUI)
+
+  if(window.innerWidth > 768){
+    ui.setAttribute('data-open', '')
+  }
+
+  const switchColor = () => {
+    shadowVoxel.material.color.setHex(COLORS[current_color])
+
+    for (const color of colors) {
+      color.classList.remove('selected')
+
+      if (color.dataset.color === current_color.toString()) {
+        color.classList.add('selected')
+      }
+    }
+  }
+
+  COLORS.forEach((color, index) => {
+    const colorEl = document.createElement('div')
+    colorEl.classList.add('ui-color')
+    colorEl.style.backgroundColor = `#${color.toString(16)}`
+    colorEl.dataset.color = index.toString()
+    colors.push(colorEl)
+    colors_container.appendChild(colorEl)
+    
+    colorEl.addEventListener('pointerdown', () => {
+      current_color = index
+      switchColor()
+    })
+
+    if(index === 0) colorEl.classList.add('selected')
+  })
+
   const loadExample = async (name: string) => {
 
     if (EXAMPLES.includes(name)){
@@ -107,6 +154,8 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
         to_intersect.push(newVoxel)
         scene.add(newVoxel)
       })
+
+      examples_select.value = name
     }
 
   }
@@ -170,16 +219,18 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 
   const onKeyDown = (e: KeyboardEvent) => {
 
+    if(e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return
+
     if(e.key === 'ArrowLeft') current_color = (current_color - 1 + COLORS.length) % COLORS.length
     if(e.key === 'ArrowRight') current_color = (current_color + 1) % COLORS.length
 
-    shadowVoxel.material.color.setHex(COLORS[current_color])
+    switchColor()
 
   }
 
   window.addEventListener('resize', onWindowResize, false)
-  window.addEventListener('mousemove', onMouseMove, false)
-  window.addEventListener('mousedown', onClick, false)
+  window.addEventListener('pointermove', onMouseMove, false)
+  window.addEventListener('pointerdown', onClick, false)
   window.addEventListener('keydown', onKeyDown, false)
 
 
@@ -266,8 +317,8 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 
   }
 
-  clear_btn.addEventListener('click', clear)
-  save_btn.addEventListener('click', save)
+  clear_btn.addEventListener('pointerdown', clear)
+  save_btn.addEventListener('pointerdown', save)
   load_input.addEventListener('change', load)
   examples_select.addEventListener('change', onSelect)
 

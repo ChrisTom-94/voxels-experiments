@@ -11,31 +11,85 @@ html {
 body{
   width: 100vw;
   height: 100vh;
+  overflow: hidden;
 }
 
 #ui{
   position: absolute;
   z-index: 1;
-  width: 15vw;
+  width: 100vw;
   height: 100vh;
   display: flex;
   flex-direction: column;
-  align-items: center;
   gap: 2.5rem;
   align-items: flex-start;
   padding: 2rem;
   pointer-events: none;
   background-color: white;
   box-shadow: 0 0 0.5rem rgba(0, 0, 0, 0.2);
-  border-radius: 0.5rem;
+  overflow-y: auto;
+  transform: translateX(-100%);
+  transition: transform 0.3s ease-in-out;
 }
 
-#ui > div {
+ #ui-toggler{
+  position: fixed;
+  top: 1rem;
+  left: 1rem;
+  width: fit-content;
+  background-color: transparent;
+  border: none;
+  pointer-events: all;
+  cursor: pointer;
+  z-index: 2;
+}
+
+#ui-toggler:hover{
+  transform: scale(1.1);
+}
+
+#ui[data-open]{
+  transform: translateX(0);
+  pointer-events: all;
+}
+
+#ui-toggler[data-open] svg{
+  transform: rotate(180deg);
+}
+
+@media screen and (min-width: 768px){
+  #ui{
+    width: fit-content;
+  }
+  #ui-toggler{
+    display: none;
+  }
+}
+
+#ui > div:not(.ui-actions) {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
   width: 100%;
+  gap: 0.5rem;
+}
+
+#ui-colors-container{
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.ui-color {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid #000;
+  cursor: pointer;
+}
+
+.ui-color.selected {
+  transform: scale(1.2);
 }
 
 img {
@@ -52,28 +106,14 @@ img.img-medium{
   width: 2rem;
 }
 
-#actions{
-  position: absolute;
-  z-index: 1;
-  width: fit-content;
-  padding: 2rem;
-  top: 0;
-  right: 0;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  background-color: white;
-  box-shadow: 0 0 0.5rem rgba(0, 0, 0, 0.2);
-  border-radius: 0.5rem;
-}
-
-button{
+button, label, select{
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 }
 
 button, .ui-file-loader label{
   pointer-events: all;
   padding: 1rem 2rem;
+  width: 100%;
   border: none;
   border-radius: 0.5rem;
   background-color: #fff;
@@ -92,6 +132,14 @@ button:hover, .ui-file-loader label:hover{
   pointer-events: all;
 }
 
+.ui-file-loader label, button{
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+
 input[type="file"]{
   visibility: hidden;
   position: absolute;
@@ -102,14 +150,18 @@ input[type="file"]{
   height: 100%;
 }
 
+label{
+  align-self: self-start;
+}
+
 select{
   pointer-events: all;
   padding: 1rem 2rem;
   background-color: white;
   border: none;
+  width: 100%;
   border-radius: 0.5rem;
   box-shadow: 0 0 0.5rem rgba(0, 0, 0, 0.2);
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
   font-weight: 600;
   font-size: 1rem;
 }
